@@ -1,0 +1,15 @@
+# NetWatch — Python dependencies
+# Install with:  pip install -r requirements.txt
+#
+# Core (required)
+flask>=3.0.0
+pandas>=2.0.0
+
+# Packet capture (install at least one)
+# Option A — more powerful, needs sudo on Linux/macOS:
+scapy>=2.5.0
+# Option B — needs Wireshark/tshark installed:
+# pyshark>=0.6
+
+# PDF report generation (optional but recommended)
+reportlab>=4.0.0

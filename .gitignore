@@ -1,0 +1,19 @@
+# Ignore database and CSV (they are auto-generated)
+netwatch.db
+netwatch.db-journal
+packets.csv
+
+# Ignore virtual environment folder
+venv/
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore reports folder
+reports/
+
+# Ignore Windows system files
+Thumbs.db
+desktop.ini

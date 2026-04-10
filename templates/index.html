@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NetWatch — Network Traffic Monitor</title>
+
+  <!-- Google Fonts: sharp techy display font + clean mono for data -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap 5 for layout and components -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <!-- Our custom styles -->
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     TOP NAVIGATION BAR
+════════════════════════════════════════════════════════════════════════════ -->
+<nav class="navbar navbar-dark nw-navbar sticky-top">
+  <div class="container-fluid">
+    <span class="navbar-brand d-flex align-items-center gap-2">
+      <span class="nw-logo-icon"><i class="bi bi-broadcast"></i></span>
+      <span class="nw-brand-text">NET<span class="accent">WATCH</span></span>
+    </span>
+
+    <div class="d-flex align-items-center gap-3">
+      <!-- Live indicator -->
+      <span class="live-badge">
+        <span class="live-dot"></span> LIVE
+      </span>
+
+      <!-- Last updated -->
+      <small class="text-muted d-none d-md-inline" id="last-update">–</small>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     FILTER BAR
+════════════════════════════════════════════════════════════════════════════ -->
+<div class="nw-filter-bar">
+  <div class="container-fluid">
+    <div class="row g-2 align-items-end">
+
+      <div class="col-auto">
+        <label class="filter-label">TIME WINDOW</label>
+        <select class="nw-select" id="filter-hours">
+          <option value="0.25">Last 15 min</option>
+          <option value="1" selected>Last 1 hour</option>
+          <option value="6">Last 6 hours</option>
+          <option value="24">Last 24 hours</option>
+        </select>
+      </div>
+
+      <div class="col-auto">
+        <label class="filter-label">PROTOCOL</label>
+        <select class="nw-select" id="filter-protocol">
+          <option value="">All Protocols</option>
+          <option>TCP</option><option>UDP</option><option>DNS</option>
+          <option>HTTP</option><option>HTTPS</option><option>SSH</option>
+          <option>FTP</option><option>OTHER</option>
+        </select>
+      </div>
+
+      <div class="col-auto">
+        <label class="filter-label">DEVICE (IP)</label>
+        <input class="nw-input" type="text" id="filter-device"
+               placeholder="e.g. 192.168.1.1" />
+      </div>
+
+      <div class="col-auto">
+        <label class="filter-label">TABLE ROWS</label>
+        <select class="nw-select" id="filter-limit">
+          <option value="25">25</option>
+          <option value="50" selected>50</option>
+          <option value="100">100</option>
+          <option value="250">250</option>
+        </select>
+      </div>
+
+      <div class="col-auto ms-auto d-flex gap-2 flex-wrap">
+        <!-- Download buttons -->
+        <button class="nw-btn" onclick="downloadReport('csv')">
+          <i class="bi bi-filetype-csv"></i> CSV
+        </button>
+        {% if pdf_available %}
+        <button class="nw-btn nw-btn-accent" onclick="downloadReport('pdf')">
+          <i class="bi bi-file-earmark-pdf"></i> PDF
+        </button>
+        {% else %}
+        <button class="nw-btn" disabled title="Install reportlab for PDF export"
+                style="opacity:.4;cursor:not-allowed">
+          <i class="bi bi-file-earmark-pdf"></i> PDF
+        </button>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     STAT CARDS
+════════════════════════════════════════════════════════════════════════════ -->
+<div class="container-fluid mt-3 px-3">
+  <div class="row g-3">
+
+    <div class="col-6 col-lg-3">
+      <div class="stat-card">
+        <div class="stat-icon blue"><i class="bi bi-boxes"></i></div>
+        <div>
+          <div class="stat-label">TOTAL PACKETS</div>
+          <div class="stat-value" id="s-packets">–</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+      <div class="stat-card">
+        <div class="stat-icon green"><i class="bi bi-speedometer2"></i></div>
+        <div>
+          <div class="stat-label">DATA TRANSFERRED</div>
+          <div class="stat-value" id="s-mb">–<span class="stat-unit">MB</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+      <div class="stat-card">
+        <div class="stat-icon purple"><i class="bi bi-hdd-network"></i></div>
+        <div>
+          <div class="stat-label">ACTIVE DEVICES</div>
+          <div class="stat-value" id="s-devices">–</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+      <div class="stat-card">
+        <div class="stat-icon orange"><i class="bi bi-layers"></i></div>
+        <div>
+          <div class="stat-label">TOP PROTOCOL</div>
+          <div class="stat-value" id="s-proto">–</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /row stat cards -->
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     ANOMALY ALERT BANNER (hidden by default)
+════════════════════════════════════════════════════════════════════════════ -->
+  <div id="anomaly-banner" class="nw-anomaly-banner d-none mt-3">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+    <strong>Anomaly Detected:</strong>
+    <span id="anomaly-text">–</span>
+  </div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     CHARTS ROW 1: Bandwidth line + Protocol bar
+════════════════════════════════════════════════════════════════════════════ -->
+  <div class="row g-3 mt-1">
+
+    <div class="col-lg-8">
+      <div class="chart-card">
+        <div class="chart-title">
+          <i class="bi bi-activity"></i> Bandwidth Over Time
+        </div>
+        <div id="chart-bandwidth"></div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="chart-card">
+        <div class="chart-title">
+          <i class="bi bi-bar-chart-fill"></i> Data per Protocol
+        </div>
+        <div id="chart-protocol"></div>
+      </div>
+    </div>
+
+  </div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     CHARTS ROW 2: Devices pie
+════════════════════════════════════════════════════════════════════════════ -->
+  <div class="row g-3 mt-1">
+
+    <div class="col-lg-5">
+      <div class="chart-card">
+        <div class="chart-title">
+          <i class="bi bi-pie-chart-fill"></i> Top Active Devices
+        </div>
+        <div id="chart-devices"></div>
+      </div>
+    </div>
+
+    <div class="col-lg-7">
+      <div class="chart-card h-100">
+        <div class="chart-title d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-table"></i> Live Packet Stream</span>
+          <span class="badge nw-badge" id="packet-count-badge">0 packets</span>
+        </div>
+        <div class="table-scroll">
+          <table class="nw-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Src IP</th>
+                <th>Dst IP</th>
+                <th>Protocol</th>
+                <th>Size</th>
+                <th>Info</th>
+              </tr>
+            </thead>
+            <tbody id="packet-table-body">
+              <tr><td colspan="6" class="text-center text-muted py-3">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /row -->
+
+</div><!-- /container -->
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════════════════════════════════════ -->
+<footer class="nw-footer mt-4">
+  NetWatch &nbsp;·&nbsp; Open-source Network Monitor &nbsp;·&nbsp;
+  Built with Flask + Plotly + Bootstrap
+</footer>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     SCRIPTS
+════════════════════════════════════════════════════════════════════════════ -->
+<!-- Plotly.js for charts -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Our dashboard logic -->
+<script src="/static/js/dashboard.js"></script>
+
+</body>
+</html>
